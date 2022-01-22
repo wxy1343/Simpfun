@@ -165,6 +165,9 @@ class Simpfun:
         cookies = {'sf-userdata': self.sf_userdata, 'PHPSESSID': self.PHPSESSID}
         params = {'tn_r': self.code}
         r = requests.get(url, params, headers=self.headers, cookies=cookies, verify=self.verify)
+        if '登录过期' in r.text:
+            logger.error('登录过期')
+            return False
         self.result = r.text
         if self.result and self.result != 'error':
             return True
@@ -188,7 +191,7 @@ if __name__ == '__main__':
     logger = logging.getLogger('Simpfun')
     if not os.path.exists(cqhttp_path):
         logger.error('请先下载go-cqhttp.exe - https://github.com/Mrs4s/go-cqhttp/releases')
-        exit()
+        exit(1)
     if '-v' not in sys.argv[1:] and 'verbose' not in sys.argv[1:]:
         cqhttp_path += ' > nul'
     if '-i' in sys.argv[1:] or 'init' in sys.argv[1:] and os.path.exists(conf_path):
@@ -228,12 +231,14 @@ if __name__ == '__main__':
     logger.info(f'等待{wait_time}秒开始签到')
     threading.Thread(target=functools.partial(subprocess.Popen, cqhttp_path, shell=True), daemon=True).start()
     time.sleep(wait_time)
-    sf = Simpfun(simpfun_username, simpfun_password)
-    if not sf.login():
-        logger.info('登录失败')
-        exit(1)
-    logger.info('登录成功')
+    sf = Simpfun(simpfun_username, simpfun_password, sf_userdata='123')
     while True:
+        if not sf.login():
+            logger.info('登录失败')
+            logger.info(f'等待{wait_time}秒后重试')
+            time.sleep(wait_time)
+            continue
+        logger.info('登录成功')
         if sf.sign():
             logger.info(f'正在发送到群聊：{group_id}')
             n = 1
