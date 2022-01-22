@@ -7,7 +7,7 @@
 * go-cqhttp
 * Pillow
 * requests
-* ruamel.base
+* ruamel.yaml
 
 ## 2. 参数
 
